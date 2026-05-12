@@ -48,3 +48,31 @@ def test_metadata_only_next_step_points_to_local_venv_dependency_install():
         assert "markitdown[all]" in markdown
         assert ".venv" in markdown
         assert "requirements.txt" in markdown
+
+
+def test_scanned_pdf_routes_to_pdf_ocr_when_markitdown_has_too_little_text(monkeypatch):
+    from rightclick_ai_markdown import converter
+
+    with TemporaryDirectory() as tmp:
+        source = Path(tmp) / "scan.pdf"
+        source.write_bytes(b"%PDF-1.4\n% fake scanned pdf")
+
+        monkeypatch.setattr(converter, "try_markitdown", lambda path: "\n")
+        monkeypatch.setattr(
+            converter,
+            "convert_pdf_with_ocr",
+            lambda path, ocr_language="eng+ind", pdf_ocr_dpi=200: ("OCR markdown", "OCR warning"),
+        )
+
+        markdown, warning = converter.convert_document(source)
+
+        assert markdown == "OCR markdown"
+        assert warning == "OCR warning"
+
+
+def test_ocr_requirements_include_pdf_renderer_for_scanned_pdfs():
+    requirements_ocr = Path("requirements-ocr.txt").read_text(encoding="utf-8").lower()
+    pyproject = Path("pyproject.toml").read_text(encoding="utf-8").lower()
+
+    assert "pymupdf" in requirements_ocr
+    assert "pymupdf" in pyproject

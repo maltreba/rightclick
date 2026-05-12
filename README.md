@@ -8,6 +8,7 @@
 - Mengonversi file terpilih menjadi `.md` di folder `.ai-markdown` di sebelah file asal.
 - Untuk file gambar seperti `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.bmp`, `.gif`, dan `.webp`, tool menjalankan OCR terlebih dahulu agar teks/angka/karakter di gambar ikut masuk ke Markdown.
 - Untuk dokumen umum seperti PDF, Office, HTML, CSV, dan format lain, tool memakai converter Python `markitdown[all]` agar dependency Office seperti `.xlsx` ikut terpasang.
+- Untuk PDF hasil scan/foto, jika MarkItDown tidak menemukan teks yang cukup, tool merender tiap halaman PDF menjadi gambar dengan PyMuPDF lalu menjalankan OCR per halaman.
 - Untuk file teks/source code, tool membungkus isi file dalam Markdown code fence agar aman diberikan ke AI.
 - Semua output diberi metadata sumber seperti path, ekstensi, MIME type, ukuran file, waktu konversi, dan converter yang dipakai.
 
@@ -36,7 +37,7 @@ Jika Anda ingin OCR gambar yang bisa dipasang dengan `pip` tanpa install aplikas
 .\scripts\install-ai-markdown-context-menu.ps1 -WithOcr
 ```
 
-Opsi ini memasang `easyocr` ke virtual environment lokal. `easyocr` lebih besar karena membawa dependency machine learning, tetapi tidak membutuhkan installer Administrator Windows.
+Opsi ini memasang `easyocr` dan `pymupdf` ke virtual environment lokal. `easyocr` lebih besar karena membawa dependency machine learning, tetapi tidak membutuhkan installer Administrator Windows. `pymupdf` dipakai untuk merender halaman PDF hasil scan/foto sebelum OCR.
 
 Tool juga mendukung `pytesseract`/Tesseract jika sudah tersedia di `PATH`. Urutan OCR yang dicoba adalah:
 
@@ -45,6 +46,12 @@ Tool juga mendukung `pytesseract`/Tesseract jika sudah tersedia di `PATH`. Uruta
 3. executable `tesseract` langsung dari `PATH`.
 
 Jika tidak ada OCR engine, file Markdown tetap dibuat dengan warning agar Anda tahu OCR belum berjalan.
+
+Untuk PDF hasil scan/foto, gunakan instalasi OCR lalu jalankan ulang konversi:
+
+```powershell
+.\scripts\install-ai-markdown-context-menu.ps1 -WithOcr
+```
 
 ## Cara pakai dari command line
 
@@ -125,6 +132,6 @@ Anda bisa memilih lokasi lain dengan parameter `-Locations`, misalnya:
 
 - Jika menu belum muncul, restart File Explorer lewat Task Manager atau sign out lalu sign in kembali.
 - Jika Python tidak ditemukan, install Python untuk current user saja dari python.org atau Microsoft Store, lalu ulangi script install.
-- Jika OCR gambar belum berjalan, ulangi instalasi dengan `-WithOcr` atau pastikan executable `tesseract` tersedia di `PATH`.
+- Jika OCR gambar atau PDF hasil scan/foto belum berjalan, ulangi instalasi dengan `-WithOcr` agar `easyocr` dan `pymupdf` terpasang, atau pastikan executable `tesseract` tersedia di `PATH`.
 - Jika muncul warning MarkItDown seperti `MissingDependencyException` untuk `.xlsx`, jalankan ulang `scripts\install-ai-markdown-context-menu.ps1` atau jalankan `.\.venv\Scripts\python.exe -m pip install -r requirements.txt` supaya `markitdown[all]` terpasang.
 - Jika dependency gagal di-install karena jaringan/proxy kantor, jalankan `pip` dengan konfigurasi proxy perusahaan atau gunakan wheel offline ke virtual environment `.venv`.

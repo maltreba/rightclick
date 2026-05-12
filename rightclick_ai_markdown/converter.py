@@ -10,9 +10,14 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Sequence
+
+PDF_EXTENSION = ".pdf"
+SCANNED_PDF_MIN_TEXT_CHARS = 80
+PDF_OCR_DEFAULT_DPI = 200
 
 IMAGE_EXTENSIONS = {
     ".bmp",
@@ -139,6 +144,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         default="eng+ind",
         help="Tesseract OCR language string. Default: eng+ind.",
     )
+    parser.add_argument(
+        "--pdf-ocr-dpi",
+        type=int,
+        default=PDF_OCR_DEFAULT_DPI,
+        help="DPI used when rendering scanned/photo PDFs before OCR. Default: 200.",
+    )
     args = parser.parse_args(argv)
 
     results: list[ConversionResult] = []
@@ -152,6 +163,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     output_dir=args.output_dir,
                     overwrite=args.overwrite,
                     ocr_language=args.ocr_language,
+                    pdf_ocr_dpi=args.pdf_ocr_dpi,
                 )
                 results.append(result)
                 print(format_result(result))
@@ -188,6 +200,7 @@ def convert_file(
     output_dir: Path | None = None,
     overwrite: bool = False,
     ocr_language: str = "eng+ind",
+    pdf_ocr_dpi: int = PDF_OCR_DEFAULT_DPI,
 ) -> ConversionResult:
     source = file_path.expanduser().resolve()
     target = build_output_path(source, output_dir=output_dir, overwrite=overwrite)
@@ -198,7 +211,7 @@ def convert_file(
         if source.suffix.lower() in IMAGE_EXTENSIONS:
             body, warning = convert_image_with_ocr(source, ocr_language=ocr_language)
         else:
-            body, warning = convert_document(source)
+            body, warning = convert_document(source, ocr_language=ocr_language, pdf_ocr_dpi=pdf_ocr_dpi)
     except Exception as exc:
         body = unsupported_markdown(source, f"Conversion failed: {exc}")
         warning = str(exc)
@@ -314,7 +327,14 @@ def ocr_language_candidates(ocr_language: str) -> list[str]:
     return list(dict.fromkeys(candidates))
 
 
-def convert_document(source: Path) -> tuple[str, str | None]:
+def convert_document(
+    source: Path,
+    ocr_language: str = "eng+ind",
+    pdf_ocr_dpi: int = PDF_OCR_DEFAULT_DPI,
+) -> tuple[str, str | None]:
+    if source.suffix.lower() == PDF_EXTENSION:
+        return convert_pdf(source, ocr_language=ocr_language, pdf_ocr_dpi=pdf_ocr_dpi)
+
     markdown = try_markitdown(source)
     if markdown is not None:
         return add_header_if_missing(markdown, source, converter="MarkItDown"), None
@@ -324,6 +344,91 @@ def convert_document(source: Path) -> tuple[str, str | None]:
 
     warning = "No converter recognized this file type; metadata-only Markdown was created."
     return unsupported_markdown(source, warning), warning
+
+
+def convert_pdf(source: Path, ocr_language: str = "eng+ind", pdf_ocr_dpi: int = PDF_OCR_DEFAULT_DPI) -> tuple[str, str | None]:
+    markdown = try_markitdown(source)
+    if markdown is not None and has_meaningful_text(markdown):
+        return add_header_if_missing(markdown, source, converter="MarkItDown"), None
+
+    ocr_markdown, ocr_warning = convert_pdf_with_ocr(source, ocr_language=ocr_language, pdf_ocr_dpi=pdf_ocr_dpi)
+    if ocr_markdown is not None:
+        return ocr_markdown, ocr_warning
+
+    warning = (
+        "PDF appears to be scanned/photo-based, but PDF OCR could not run. "
+        "Re-run `scripts\\install-ai-markdown-context-menu.ps1 -WithOcr` or install `requirements-ocr.txt`."
+    )
+    if markdown is not None:
+        return add_header_if_missing(markdown, source, converter="MarkItDown") + "\n## OCR Warning\n\n" + warning + "\n", warning
+    return unsupported_markdown(source, warning), warning
+
+
+def has_meaningful_text(markdown: str, minimum_chars: int = SCANNED_PDF_MIN_TEXT_CHARS) -> bool:
+    text = "".join(character for character in markdown if not character.isspace())
+    return len(text) >= minimum_chars
+
+
+def convert_pdf_with_ocr(
+    source: Path,
+    ocr_language: str = "eng+ind",
+    pdf_ocr_dpi: int = PDF_OCR_DEFAULT_DPI,
+) -> tuple[str | None, str | None]:
+    if importlib.util.find_spec("fitz") is None:
+        warning = (
+            "PDF appears to be scanned/photo-based, but PyMuPDF is not installed to render PDF pages. "
+            "Re-run `scripts\\install-ai-markdown-context-menu.ps1 -WithOcr` or run "
+            "`.\\.venv\\Scripts\\python.exe -m pip install -r requirements-ocr.txt`."
+        )
+        return scanned_pdf_warning_markdown(source, warning), warning
+
+    fitz = importlib.import_module("fitz")
+    page_sections: list[str] = []
+    warnings: list[str] = []
+    zoom = max(pdf_ocr_dpi, 72) / 72
+
+    with tempfile.TemporaryDirectory(prefix="rightclick-pdf-ocr-") as temp_dir:
+        document = fitz.open(str(source))
+        try:
+            for page_index in range(document.page_count):
+                page = document.load_page(page_index)
+                image_path = Path(temp_dir) / f"page-{page_index + 1}.png"
+                pixmap = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=False)
+                pixmap.save(str(image_path))
+
+                text, engine, warning = ocr_image(image_path, ocr_language=ocr_language)
+                if warning:
+                    warnings.append(f"Page {page_index + 1}: {warning}")
+                page_sections.extend(
+                    [
+                        f"## Page {page_index + 1} OCR",
+                        "",
+                        text.strip() if text.strip() else "_No text was detected on this page._",
+                        "",
+                        f"_OCR engine: {engine}_",
+                        "",
+                    ]
+                )
+        finally:
+            document.close()
+
+    warning_message = "; ".join(dict.fromkeys(warnings)) if warnings else None
+    body = metadata_header(source, converter="scanned PDF OCR")
+    body += "# Scanned PDF OCR\n\n"
+    body += "MarkItDown did not extract enough text from this PDF, so each page was rendered as an image and OCR was applied.\n\n"
+    body += "\n".join(page_sections).rstrip() + "\n"
+    if warning_message:
+        body += f"\n## OCR Warnings\n\n{warning_message}\n"
+    return body, warning_message
+
+
+def scanned_pdf_warning_markdown(source: Path, warning: str) -> str:
+    return (
+        metadata_header(source, converter="scanned PDF OCR unavailable")
+        + "## OCR Warning\n\n"
+        + warning
+        + "\n"
+    )
 
 
 def try_markitdown(source: Path) -> str | None:
