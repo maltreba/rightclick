@@ -357,7 +357,7 @@ def convert_pdf(source: Path, ocr_language: str = "eng+ind", pdf_ocr_dpi: int = 
 
     warning = (
         "PDF appears to be scanned/photo-based, but PDF OCR could not run. "
-        "Re-run `scripts\\install-ai-markdown-context-menu.ps1 -WithOcr` or install `requirements-ocr.txt`."
+        "Re-run `scripts\\install-ai-markdown-context-menu.ps1` or install `requirements-ocr.txt`."
     )
     if markdown is not None:
         return add_header_if_missing(markdown, source, converter="MarkItDown") + "\n## OCR Warning\n\n" + warning + "\n", warning
@@ -377,8 +377,8 @@ def convert_pdf_with_ocr(
     if importlib.util.find_spec("fitz") is None:
         warning = (
             "PDF appears to be scanned/photo-based, but PyMuPDF is not installed to render PDF pages. "
-            "Re-run `scripts\\install-ai-markdown-context-menu.ps1 -WithOcr` or run "
-            "`.\\.venv\\Scripts\\python.exe -m pip install -r requirements-ocr.txt`."
+            "Re-run `scripts\\install-ai-markdown-context-menu.ps1` so OCR dependencies are installed, "
+            "or run `.\\.venv\\Scripts\\python.exe -m pip install -r requirements-ocr.txt`."
         )
         return scanned_pdf_warning_markdown(source, warning), warning
 

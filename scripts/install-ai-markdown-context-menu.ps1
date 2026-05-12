@@ -15,6 +15,9 @@ param(
     [ValidateSet('File', 'Directory', 'Drive', 'DirectoryBackground', 'DesktopBackground')]
     [string[]]$Locations = @('File', 'Directory'),
 
+    [switch]$SkipOcr,
+
+    # Backward-compatible no-op: OCR dependencies are installed by default now.
     [switch]$WithOcr,
 
     [string]$VenvPath = (Join-Path (Split-Path -Parent $PSScriptRoot) '.venv')
@@ -52,7 +55,7 @@ if (-not (Test-Path -LiteralPath $venvPython)) {
 & $venvPython -m pip install --editable $repoRoot
 & $venvPython -m pip install -r (Join-Path $repoRoot 'requirements.txt')
 
-if ($WithOcr) {
+if (-not $SkipOcr) {
     & $venvPython -m pip install -r (Join-Path $repoRoot 'requirements-ocr.txt')
 }
 
@@ -63,5 +66,9 @@ $installer = Join-Path $PSScriptRoot 'install-context-menu.ps1'
     -CommandPath $venvPython `
     -CommandArguments @('-m', 'rightclick_ai_markdown', '--open-output') `
     -Locations $Locations
+
+if ($SkipOcr) {
+    Write-Host 'OCR dependencies were skipped. Scanned/photo PDFs and images may produce OCR warnings until requirements-ocr.txt is installed.'
+}
 
 Write-Host "Installed '$MenuText'. Right-click a file or folder and choose the menu item to create Markdown output."

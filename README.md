@@ -25,19 +25,26 @@ Script tersebut akan:
 1. mencari Python 3 user-level (`py -3`, `python`, atau `python3`),
 2. membuat virtual environment lokal di `.venv`,
 3. memasang package repo ini dan converter lengkap `markitdown[all]` dari `requirements.txt`,
-4. mendaftarkan context menu di `HKCU` sehingga tidak perlu Administrator.
+4. memasang dependency OCR dari `requirements-ocr.txt` secara default, termasuk `easyocr` dan `pymupdf`,
+5. mendaftarkan context menu di `HKCU` sehingga tidak perlu Administrator.
 
 Setelah selesai, klik kanan file di Windows Explorer lalu pilih **Convert to Markdown for AI**.
 
-## Instalasi dengan OCR Python tanpa Tesseract Windows
+## Instalasi OCR Python tanpa Tesseract Windows
 
-Jika Anda ingin OCR gambar yang bisa dipasang dengan `pip` tanpa install aplikasi Tesseract secara global, gunakan opsi `-WithOcr`:
+Installer normal sekarang memasang OCR dependencies secara default:
 
 ```powershell
-.\scripts\install-ai-markdown-context-menu.ps1 -WithOcr
+.\scripts\install-ai-markdown-context-menu.ps1
 ```
 
-Opsi ini memasang `easyocr` dan `pymupdf` ke virtual environment lokal. `easyocr` lebih besar karena membawa dependency machine learning, tetapi tidak membutuhkan installer Administrator Windows. `pymupdf` dipakai untuk merender halaman PDF hasil scan/foto sebelum OCR.
+Ini memasang `easyocr` dan `pymupdf` ke virtual environment lokal. `easyocr` lebih besar karena membawa dependency machine learning, tetapi tidak membutuhkan installer Administrator Windows. `pymupdf` dipakai untuk merender halaman PDF hasil scan/foto sebelum OCR.
+
+Jika Anda hanya ingin converter dokumen tanpa OCR berat, gunakan opsi:
+
+```powershell
+.\scripts\install-ai-markdown-context-menu.ps1 -SkipOcr
+```
 
 Tool juga mendukung `pytesseract`/Tesseract jika sudah tersedia di `PATH`. Urutan OCR yang dicoba adalah:
 
@@ -47,10 +54,10 @@ Tool juga mendukung `pytesseract`/Tesseract jika sudah tersedia di `PATH`. Uruta
 
 Jika tidak ada OCR engine, file Markdown tetap dibuat dengan warning agar Anda tahu OCR belum berjalan.
 
-Untuk PDF hasil scan/foto, gunakan instalasi OCR lalu jalankan ulang konversi:
+Untuk PDF hasil scan/foto yang sebelumnya menghasilkan warning `PyMuPDF is not installed`, jalankan ulang installer normal lalu ulangi konversi:
 
 ```powershell
-.\scripts\install-ai-markdown-context-menu.ps1 -WithOcr
+.\scripts\install-ai-markdown-context-menu.ps1
 ```
 
 ## Cara pakai dari command line
@@ -132,6 +139,6 @@ Anda bisa memilih lokasi lain dengan parameter `-Locations`, misalnya:
 
 - Jika menu belum muncul, restart File Explorer lewat Task Manager atau sign out lalu sign in kembali.
 - Jika Python tidak ditemukan, install Python untuk current user saja dari python.org atau Microsoft Store, lalu ulangi script install.
-- Jika OCR gambar atau PDF hasil scan/foto belum berjalan, ulangi instalasi dengan `-WithOcr` agar `easyocr` dan `pymupdf` terpasang, atau pastikan executable `tesseract` tersedia di `PATH`.
+- Jika OCR gambar atau PDF hasil scan/foto belum berjalan, ulangi instalasi normal agar `easyocr` dan `pymupdf` terpasang; jangan gunakan `-SkipOcr` kecuali Anda memang tidak membutuhkan OCR. Anda juga bisa memakai executable `tesseract` di `PATH` sebagai fallback.
 - Jika muncul warning MarkItDown seperti `MissingDependencyException` untuk `.xlsx`, jalankan ulang `scripts\install-ai-markdown-context-menu.ps1` atau jalankan `.\.venv\Scripts\python.exe -m pip install -r requirements.txt` supaya `markitdown[all]` terpasang.
 - Jika dependency gagal di-install karena jaringan/proxy kantor, jalankan `pip` dengan konfigurasi proxy perusahaan atau gunakan wheel offline ke virtual environment `.venv`.

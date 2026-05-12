@@ -54,7 +54,10 @@ def test_ai_markdown_installer_creates_local_venv_and_registers_module_command()
     assert "-m pip install --editable $repoRoot" in content
     assert "requirements.txt" in content
     assert "requirements-ocr.txt" in content
-    assert "if ($WithOcr)" in content
+    assert "[switch]$SkipOcr" in content
+    assert "[switch]$WithOcr" in content
+    assert "if (-not $SkipOcr)" in content
+    assert "if ($WithOcr)" not in content
     assert "install-context-menu.ps1" in content
     assert "-CommandPath $venvPython" in content
     assert "'-m', 'rightclick_ai_markdown', '--open-output'" in content
