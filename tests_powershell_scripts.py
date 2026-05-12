@@ -50,10 +50,18 @@ def test_ai_markdown_installer_creates_local_venv_and_registers_module_command()
     assert "RightClickAiMarkdown" in content
     assert "Convert to Markdown for AI" in content
     assert "'.venv'" in content
+    assert "-3.12" in content
+    assert "-3.11" in content
+    assert "-3.10" in content
+    assert "Test-PythonSupported" in content
+    assert "Assert-VenvPythonSupported" in content
+    assert "python-bidi" in content
     assert "-m', 'venv'" in content
-    assert "-m pip install --editable $repoRoot" in content
+    assert "-m pip install --upgrade --only-binary=:all: pip setuptools wheel" in content
+    assert "-m pip install --no-build-isolation --editable $repoRoot" in content
     assert "requirements.txt" in content
     assert "requirements-ocr.txt" in content
+    assert "--only-binary=:all: -r" in content
     assert "[switch]$SkipOcr" in content
     assert "[switch]$WithOcr" in content
     assert "if (-not $SkipOcr)" in content

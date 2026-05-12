@@ -29,21 +29,62 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $venvPython = Join-Path $VenvPath 'Scripts\python.exe'
 
+function Invoke-PythonText {
+    param(
+        [Parameter(Mandatory = $true)][string]$File,
+        [string[]]$Args = @(),
+        [Parameter(Mandatory = $true)][string]$Code
+    )
+
+    $output = & $File @($Args + @('-c', $Code)) 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        return $null
+    }
+    return ($output | Select-Object -First 1)
+}
+
+function Test-PythonSupported {
+    param(
+        [Parameter(Mandatory = $true)][string]$File,
+        [string[]]$Args = @()
+    )
+
+    $version = Invoke-PythonText -File $File -Args $Args -Code 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")'
+    if (-not $version) {
+        return $false
+    }
+
+    $parts = $version.Split('.')
+    $major = [int]$parts[0]
+    $minor = [int]$parts[1]
+    return ($major -eq 3 -and $minor -ge 10 -and $minor -le 12)
+}
+
 function Find-Python {
     $commands = @(
-        @{ File = 'py'; Args = @('-3') },
+        @{ File = 'py'; Args = @('-3.12') },
+        @{ File = 'py'; Args = @('-3.11') },
+        @{ File = 'py'; Args = @('-3.10') },
         @{ File = 'python'; Args = @() },
-        @{ File = 'python3'; Args = @() }
+        @{ File = 'python3'; Args = @() },
+        @{ File = 'py'; Args = @('-3') }
     )
 
     foreach ($command in $commands) {
         $candidate = Get-Command $command['File'] -ErrorAction SilentlyContinue
-        if ($candidate) {
+        if ($candidate -and (Test-PythonSupported -File $candidate.Source -Args $command['Args'])) {
             return @{ File = $candidate.Source; Args = $command['Args'] }
         }
     }
 
-    throw 'Python 3 was not found. Install Python for the current user from python.org or Microsoft Store, then retry.'
+    throw 'Python 3.10, 3.11, or 3.12 was not found. OCR dependencies currently need prebuilt wheels, and Python 3.13/3.14 may try to compile native/Rust packages such as python-bidi. Install Python 3.12 for the current user from python.org, then retry.'
+}
+
+function Assert-VenvPythonSupported {
+    if (-not (Test-PythonSupported -File $venvPython)) {
+        $version = Invoke-PythonText -File $venvPython -Code 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")'
+        throw "Existing venv uses unsupported Python $version. Delete '$VenvPath' and rerun this installer with Python 3.10, 3.11, or 3.12."
+    }
 }
 
 if (-not (Test-Path -LiteralPath $venvPython)) {
@@ -51,12 +92,14 @@ if (-not (Test-Path -LiteralPath $venvPython)) {
     & $($python['File']) @($python['Args'] + @('-m', 'venv', $VenvPath))
 }
 
-& $venvPython -m pip install --upgrade pip
-& $venvPython -m pip install --editable $repoRoot
-& $venvPython -m pip install -r (Join-Path $repoRoot 'requirements.txt')
+Assert-VenvPythonSupported
+
+& $venvPython -m pip install --upgrade --only-binary=:all: pip setuptools wheel
+& $venvPython -m pip install --no-build-isolation --editable $repoRoot
+& $venvPython -m pip install --only-binary=:all: -r (Join-Path $repoRoot 'requirements.txt')
 
 if (-not $SkipOcr) {
-    & $venvPython -m pip install -r (Join-Path $repoRoot 'requirements-ocr.txt')
+    & $venvPython -m pip install --only-binary=:all: -r (Join-Path $repoRoot 'requirements-ocr.txt')
 }
 
 $installer = Join-Path $PSScriptRoot 'install-context-menu.ps1'

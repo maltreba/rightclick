@@ -22,7 +22,7 @@
 
 Script tersebut akan:
 
-1. mencari Python 3 user-level (`py -3`, `python`, atau `python3`),
+1. mencari Python user-level yang didukung (`py -3.12`, `py -3.11`, atau `py -3.10`) agar pip memakai wheel siap pakai,
 2. membuat virtual environment lokal di `.venv`,
 3. memasang package repo ini dan converter lengkap `markitdown[all]` dari `requirements.txt`,
 4. memasang dependency OCR dari `requirements-ocr.txt` secara default, termasuk `easyocr` dan `pymupdf`,
@@ -38,13 +38,21 @@ Installer normal sekarang memasang OCR dependencies secara default:
 .\scripts\install-ai-markdown-context-menu.ps1
 ```
 
-Ini memasang `easyocr` dan `pymupdf` ke virtual environment lokal. `easyocr` lebih besar karena membawa dependency machine learning, tetapi tidak membutuhkan installer Administrator Windows. `pymupdf` dipakai untuk merender halaman PDF hasil scan/foto sebelum OCR.
+Ini memasang `easyocr` dan `pymupdf` ke virtual environment lokal memakai `--only-binary=:all:` agar pip tidak mencoba compile package native/Rust seperti `python-bidi`. `easyocr` lebih besar karena membawa dependency machine learning, tetapi tidak membutuhkan installer Administrator Windows. `pymupdf` dipakai untuk merender halaman PDF hasil scan/foto sebelum OCR.
 
 Jika Anda hanya ingin converter dokumen tanpa OCR berat, gunakan opsi:
 
 ```powershell
 .\scripts\install-ai-markdown-context-menu.ps1 -SkipOcr
 ```
+
+Jika Anda sudah terlanjur punya `.venv` yang dibuat dengan Python 3.14 dan melihat error `python-bidi` / `link.exe not found`, hapus `.venv`, install Python 3.12 user-level, lalu jalankan installer lagi:
+
+```powershell
+Remove-Item -Recurse -Force .\.venv
+.\scripts\install-ai-markdown-context-menu.ps1
+```
+
 
 Tool juga mendukung `pytesseract`/Tesseract jika sudah tersedia di `PATH`. Urutan OCR yang dicoba adalah:
 
@@ -138,7 +146,8 @@ Anda bisa memilih lokasi lain dengan parameter `-Locations`, misalnya:
 ## Troubleshooting
 
 - Jika menu belum muncul, restart File Explorer lewat Task Manager atau sign out lalu sign in kembali.
-- Jika Python tidak ditemukan, install Python untuk current user saja dari python.org atau Microsoft Store, lalu ulangi script install.
+- Jika Python 3.10/3.11/3.12 tidak ditemukan, install Python 3.12 untuk current user saja dari python.org, lalu ulangi script install. Hindari Python 3.14 untuk OCR dependencies karena beberapa wheel belum tersedia dan pip bisa mencoba compile Rust/MSVC seperti `python-bidi`.
 - Jika OCR gambar atau PDF hasil scan/foto belum berjalan, ulangi instalasi normal agar `easyocr` dan `pymupdf` terpasang; jangan gunakan `-SkipOcr` kecuali Anda memang tidak membutuhkan OCR. Anda juga bisa memakai executable `tesseract` di `PATH` sebagai fallback.
 - Jika muncul warning MarkItDown seperti `MissingDependencyException` untuk `.xlsx`, jalankan ulang `scripts\install-ai-markdown-context-menu.ps1` atau jalankan `.\.venv\Scripts\python.exe -m pip install -r requirements.txt` supaya `markitdown[all]` terpasang.
+- Jika sudah terlanjur membuat `.venv` dengan Python 3.14, hapus folder `.venv`, install Python 3.12 user-level, lalu jalankan ulang installer.
 - Jika dependency gagal di-install karena jaringan/proxy kantor, jalankan `pip` dengan konfigurasi proxy perusahaan atau gunakan wheel offline ke virtual environment `.venv`.
