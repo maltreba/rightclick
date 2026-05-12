@@ -1,0 +1,3 @@
+# Optional converters for Office/PDF/HTML/etc. and image handling.
+markitdown>=0.1.0
+pillow>=10.0.0
