@@ -400,7 +400,9 @@ def unsupported_markdown(source: Path, reason: str) -> str:
         + "## Conversion Warning\n\n"
         + f"{escaped_reason}\n\n"
         + "## Next Step\n\n"
-        + "Install optional converters with `pip install --user -r requirements.txt` and retry.\n"
+        + "Re-run `scripts\\install-ai-markdown-context-menu.ps1` so the local `.venv` installs "
+        + "the full `markitdown[all]` converter extras, or run "
+        + "`.\\.venv\\Scripts\\python.exe -m pip install -r requirements.txt` from the repo root.\n"
     )
 
 

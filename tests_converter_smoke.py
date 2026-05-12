@@ -26,3 +26,25 @@ def test_markdown_source_gets_converted_suffix():
         output = build_output_path(source, output_dir=Path(tmp), overwrite=True)
 
         assert output.name == "notes_converted.md"
+
+
+def test_requirements_install_full_markitdown_extras_for_office_files():
+    requirements = Path("requirements.txt").read_text(encoding="utf-8")
+    pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
+
+    assert "markitdown[all]" in requirements
+    assert "markitdown[all]" in pyproject
+
+
+def test_metadata_only_next_step_points_to_local_venv_dependency_install():
+    from rightclick_ai_markdown.converter import unsupported_markdown
+
+    with TemporaryDirectory() as tmp:
+        source = Path(tmp) / "sample.xlsx"
+        source.write_bytes(b"not a real workbook")
+
+        markdown = unsupported_markdown(source, "MissingDependencyException: install markitdown[xlsx]")
+
+        assert "markitdown[all]" in markdown
+        assert ".venv" in markdown
+        assert "requirements.txt" in markdown

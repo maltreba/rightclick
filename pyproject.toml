@@ -13,8 +13,7 @@ dependencies = []
 
 [project.optional-dependencies]
 convert = [
-  "markitdown>=0.1.0",
-  "pillow>=10.0.0",
+  "markitdown[all]>=0.1.0",
 ]
 ocr = [
   "easyocr>=1.7.0",

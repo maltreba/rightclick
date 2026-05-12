@@ -7,7 +7,7 @@
 - Menambahkan menu klik kanan **Convert to Markdown for AI** di Windows Explorer.
 - Mengonversi file terpilih menjadi `.md` di folder `.ai-markdown` di sebelah file asal.
 - Untuk file gambar seperti `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.bmp`, `.gif`, dan `.webp`, tool menjalankan OCR terlebih dahulu agar teks/angka/karakter di gambar ikut masuk ke Markdown.
-- Untuk dokumen umum seperti PDF, Office, HTML, CSV, dan format lain, tool memakai converter Python opsional `markitdown` jika sudah terpasang.
+- Untuk dokumen umum seperti PDF, Office, HTML, CSV, dan format lain, tool memakai converter Python `markitdown[all]` agar dependency Office seperti `.xlsx` ikut terpasang.
 - Untuk file teks/source code, tool membungkus isi file dalam Markdown code fence agar aman diberikan ke AI.
 - Semua output diberi metadata sumber seperti path, ekstensi, MIME type, ukuran file, waktu konversi, dan converter yang dipakai.
 
@@ -23,7 +23,7 @@ Script tersebut akan:
 
 1. mencari Python 3 user-level (`py -3`, `python`, atau `python3`),
 2. membuat virtual environment lokal di `.venv`,
-3. memasang package repo ini dan converter opsional dari `requirements.txt`,
+3. memasang package repo ini dan converter lengkap `markitdown[all]` dari `requirements.txt`,
 4. mendaftarkan context menu di `HKCU` sehingga tidak perlu Administrator.
 
 Setelah selesai, klik kanan file di Windows Explorer lalu pilih **Convert to Markdown for AI**.
@@ -126,4 +126,5 @@ Anda bisa memilih lokasi lain dengan parameter `-Locations`, misalnya:
 - Jika menu belum muncul, restart File Explorer lewat Task Manager atau sign out lalu sign in kembali.
 - Jika Python tidak ditemukan, install Python untuk current user saja dari python.org atau Microsoft Store, lalu ulangi script install.
 - Jika OCR gambar belum berjalan, ulangi instalasi dengan `-WithOcr` atau pastikan executable `tesseract` tersedia di `PATH`.
+- Jika muncul warning MarkItDown seperti `MissingDependencyException` untuk `.xlsx`, jalankan ulang `scripts\install-ai-markdown-context-menu.ps1` atau jalankan `.\.venv\Scripts\python.exe -m pip install -r requirements.txt` supaya `markitdown[all]` terpasang.
 - Jika dependency gagal di-install karena jaringan/proxy kantor, jalankan `pip` dengan konfigurasi proxy perusahaan atau gunakan wheel offline ke virtual environment `.venv`.
