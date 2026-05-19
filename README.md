@@ -150,4 +150,5 @@ Anda bisa memilih lokasi lain dengan parameter `-Locations`, misalnya:
 - Jika OCR gambar atau PDF hasil scan/foto belum berjalan, ulangi instalasi normal agar `easyocr` dan `pymupdf` terpasang; jangan gunakan `-SkipOcr` kecuali Anda memang tidak membutuhkan OCR. Anda juga bisa memakai executable `tesseract` di `PATH` sebagai fallback.
 - Jika muncul warning MarkItDown seperti `MissingDependencyException` untuk `.xlsx`, jalankan ulang `scripts\install-ai-markdown-context-menu.ps1` atau jalankan `.\.venv\Scripts\python.exe -m pip install -r requirements.txt` supaya `markitdown[all]` terpasang.
 - Jika sudah terlanjur membuat `.venv` dengan Python 3.14, hapus folder `.venv`, install Python 3.12 user-level, lalu jalankan ulang installer.
+- Jika muncul error di `Invoke-PythonText` (baris `py.exe : File "<string>", line 1`), update ke versi script terbaru ini lalu jalankan ulang installer. Error itu biasanya berasal dari pengecekan versi Python di script lama.
 - Jika dependency gagal di-install karena jaringan/proxy kantor, jalankan `pip` dengan konfigurasi proxy perusahaan atau gunakan wheel offline ke virtual environment `.venv`.

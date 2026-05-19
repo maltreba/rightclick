@@ -49,7 +49,7 @@ function Test-PythonSupported {
         [string[]]$Args = @()
     )
 
-    $version = Invoke-PythonText -File $File -Args $Args -Code 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")'
+    $version = Invoke-PythonText -File $File -Args $Args -Code 'import sys; sys.stdout.write(str(sys.version_info.major) + "." + str(sys.version_info.minor))'
     if (-not $version) {
         return $false
     }
@@ -82,7 +82,7 @@ function Find-Python {
 
 function Assert-VenvPythonSupported {
     if (-not (Test-PythonSupported -File $venvPython)) {
-        $version = Invoke-PythonText -File $venvPython -Code 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")'
+        $version = Invoke-PythonText -File $venvPython -Code 'import sys; sys.stdout.write(str(sys.version_info.major) + "." + str(sys.version_info.minor))'
         throw "Existing venv uses unsupported Python $version. Delete '$VenvPath' and rerun this installer with Python 3.10, 3.11, or 3.12."
     }
 }
