@@ -5,7 +5,7 @@
 ## Apa yang dilakukan tool ini?
 
 - Menambahkan menu klik kanan **Convert to Markdown for AI** di Windows Explorer.
-- Mengonversi file terpilih menjadi `.md` di folder `.ai-markdown` di sebelah file asal.
+- Mengonversi file terpilih menjadi `.md` di folder `.ai-markdown` di sebelah file asal dengan output fokus ke isi teks saja (tanpa metadata header dan tanpa AI notes).
 - Untuk file gambar seperti `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.bmp`, `.gif`, dan `.webp`, tool menjalankan OCR terlebih dahulu agar teks/angka/karakter di gambar ikut masuk ke Markdown.
 - Untuk dokumen umum seperti PDF, Office, HTML, CSV, dan format lain, tool memakai converter Python `markitdown[all]` agar dependency Office seperti `.xlsx` ikut terpasang.
 - Untuk PDF hasil scan/foto, jika MarkItDown tidak menemukan teks yang cukup, tool merender tiap halaman PDF menjadi gambar dengan PyMuPDF lalu menjalankan OCR per halaman.

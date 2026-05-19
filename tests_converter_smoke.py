@@ -4,7 +4,7 @@ from tempfile import TemporaryDirectory
 from rightclick_ai_markdown.converter import build_output_path, convert_file
 
 
-def test_text_file_converts_to_markdown_with_metadata():
+def test_text_file_converts_to_markdown_text_only():
     with TemporaryDirectory() as tmp:
         root = Path(tmp)
         source = root / "sample.txt"
@@ -14,7 +14,7 @@ def test_text_file_converts_to_markdown_with_metadata():
 
         markdown = result.output.read_text(encoding="utf-8")
         assert result.output.name == "sample.md"
-        assert "converter: \"plain text\"" in markdown
+        assert "converter:" not in markdown
         assert "hello AI" in markdown
 
 
@@ -45,9 +45,8 @@ def test_metadata_only_next_step_points_to_local_venv_dependency_install():
 
         markdown = unsupported_markdown(source, "MissingDependencyException: install markitdown[xlsx]")
 
-        assert "markitdown[all]" in markdown
-        assert ".venv" in markdown
-        assert "requirements.txt" in markdown
+        assert "markitdown[all]" not in markdown
+        assert "MissingDependencyException" in markdown
 
 
 def test_scanned_pdf_routes_to_pdf_ocr_when_markitdown_has_too_little_text(monkeypatch):
@@ -76,3 +75,15 @@ def test_ocr_requirements_include_pdf_renderer_for_scanned_pdfs():
 
     assert "pymupdf" in requirements_ocr
     assert "pymupdf" in pyproject
+
+
+
+def test_text_only_output_has_no_metadata_headers():
+    from rightclick_ai_markdown.converter import convert_text_file
+
+    with TemporaryDirectory() as tmp:
+        source = Path(tmp) / "a.txt"
+        source.write_text("hello", encoding="utf-8")
+        output = convert_text_file(source)
+        assert not output.lstrip().startswith("---")
+        assert "## AI Notes" not in output

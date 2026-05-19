@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import argparse
-import datetime as dt
 import html
 import importlib
 import importlib.util
-import mimetypes
 import os
 import shutil
 import subprocess
@@ -337,7 +335,7 @@ def convert_document(
 
     markdown = try_markitdown(source)
     if markdown is not None:
-        return add_header_if_missing(markdown, source, converter="MarkItDown"), None
+        return markdown.rstrip() + "\n", None
 
     if source.suffix.lower() in TEXT_EXTENSIONS or looks_like_text(source):
         return convert_text_file(source), None
@@ -349,7 +347,7 @@ def convert_document(
 def convert_pdf(source: Path, ocr_language: str = "eng+ind", pdf_ocr_dpi: int = PDF_OCR_DEFAULT_DPI) -> tuple[str, str | None]:
     markdown = try_markitdown(source)
     if markdown is not None and has_meaningful_text(markdown):
-        return add_header_if_missing(markdown, source, converter="MarkItDown"), None
+        return markdown.rstrip() + "\n", None
 
     ocr_markdown, ocr_warning = convert_pdf_with_ocr(source, ocr_language=ocr_language, pdf_ocr_dpi=pdf_ocr_dpi)
     if ocr_markdown is not None:
@@ -360,7 +358,7 @@ def convert_pdf(source: Path, ocr_language: str = "eng+ind", pdf_ocr_dpi: int = 
         "Re-run `scripts\\install-ai-markdown-context-menu.ps1` or install `requirements-ocr.txt`."
     )
     if markdown is not None:
-        return add_header_if_missing(markdown, source, converter="MarkItDown") + "\n## OCR Warning\n\n" + warning + "\n", warning
+        return markdown.rstrip() + "\n", warning
     return unsupported_markdown(source, warning), warning
 
 
@@ -452,7 +450,7 @@ def convert_text_file(source: Path) -> str:
     else:
         language = CODE_FENCE_BY_EXTENSION.get(suffix, "text")
         body = f"```{language}\n{escape_code_fence(content)}\n```\n"
-    return metadata_header(source, converter="plain text") + body
+    return body
 
 
 def read_text_best_effort(source: Path) -> str:
@@ -474,43 +472,10 @@ def looks_like_text(source: Path, sample_size: int = 4096) -> bool:
     return text_chars / len(sample) > 0.85
 
 
-def metadata_header(source: Path, converter: str) -> str:
-    mime_type, _ = mimetypes.guess_type(source.name)
-    size = source.stat().st_size
-    timestamp = dt.datetime.now(dt.timezone.utc).astimezone().isoformat(timespec="seconds")
-    return (
-        "---\n"
-        f"title: {yaml_scalar(source.name)}\n"
-        f"source_path: {yaml_scalar(str(source))}\n"
-        f"source_extension: {yaml_scalar(source.suffix.lower() or '(none)')}\n"
-        f"mime_type: {yaml_scalar(mime_type or 'unknown')}\n"
-        f"size_bytes: {size}\n"
-        f"converted_at: {yaml_scalar(timestamp)}\n"
-        f"converter: {yaml_scalar(converter)}\n"
-        "---\n\n"
-    )
-
-
-def add_header_if_missing(markdown: str, source: Path, converter: str) -> str:
-    stripped = markdown.lstrip()
-    if stripped.startswith("---"):
-        return markdown.rstrip() + "\n"
-    return metadata_header(source, converter=converter) + markdown.rstrip() + "\n"
-
-
 def unsupported_markdown(source: Path, reason: str) -> str:
+    _ = source
     escaped_reason = html.escape(reason)
-    return (
-        metadata_header(source, converter="metadata only")
-        + "## Conversion Warning\n\n"
-        + f"{escaped_reason}\n\n"
-        + "## Next Step\n\n"
-        + "Re-run `scripts\\install-ai-markdown-context-menu.ps1` so the local `.venv` installs "
-        + "the full `markitdown[all]` converter extras, or run "
-        + "`.\\.venv\\Scripts\\python.exe -m pip install -r requirements.txt` from the repo root.\n"
-    )
-
-
+    return escaped_reason + "\n"
 def yaml_scalar(value: str) -> str:
     return '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"'
 
