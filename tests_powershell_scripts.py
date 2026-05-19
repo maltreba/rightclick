@@ -53,6 +53,7 @@ def test_ai_markdown_installer_creates_local_venv_and_registers_module_command()
     assert "-3.12" in content
     assert "-3.11" in content
     assert "-3.10" in content
+    assert "Get-PythonVersionText" in content
     assert "Test-PythonSupported" in content
     assert "Assert-VenvPythonSupported" in content
     assert "python-bidi" in content

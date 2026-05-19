@@ -29,18 +29,18 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $venvPython = Join-Path $VenvPath 'Scripts\python.exe'
 
-function Invoke-PythonText {
+function Get-PythonVersionText {
     param(
         [Parameter(Mandatory = $true)][string]$File,
-        [string[]]$Args = @(),
-        [Parameter(Mandatory = $true)][string]$Code
+        [string[]]$Args = @()
     )
 
-    $output = & $File @($Args + @('-c', $Code)) 2>$null
+    $versionOutput = & $File @($Args + @('--version')) 2>&1
     if ($LASTEXITCODE -ne 0) {
         return $null
     }
-    return ($output | Select-Object -First 1)
+
+    return ($versionOutput | Select-Object -First 1)
 }
 
 function Test-PythonSupported {
@@ -49,14 +49,18 @@ function Test-PythonSupported {
         [string[]]$Args = @()
     )
 
-    $version = Invoke-PythonText -File $File -Args $Args -Code 'import sys; sys.stdout.write(str(sys.version_info.major) + "." + str(sys.version_info.minor))'
-    if (-not $version) {
+    $versionText = Get-PythonVersionText -File $File -Args $Args
+    if (-not $versionText) {
         return $false
     }
 
-    $parts = $version.Split('.')
-    $major = [int]$parts[0]
-    $minor = [int]$parts[1]
+    $match = [regex]::Match($versionText, 'Python\s+(\d+)\.(\d+)')
+    if (-not $match.Success) {
+        return $false
+    }
+
+    $major = [int]$match.Groups[1].Value
+    $minor = [int]$match.Groups[2].Value
     return ($major -eq 3 -and $minor -ge 10 -and $minor -le 12)
 }
 
@@ -82,7 +86,7 @@ function Find-Python {
 
 function Assert-VenvPythonSupported {
     if (-not (Test-PythonSupported -File $venvPython)) {
-        $version = Invoke-PythonText -File $venvPython -Code 'import sys; sys.stdout.write(str(sys.version_info.major) + "." + str(sys.version_info.minor))'
+        $version = Get-PythonVersionText -File $venvPython
         throw "Existing venv uses unsupported Python $version. Delete '$VenvPath' and rerun this installer with Python 3.10, 3.11, or 3.12."
     }
 }
