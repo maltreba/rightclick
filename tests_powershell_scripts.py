@@ -58,7 +58,7 @@ def test_ai_markdown_installer_creates_local_venv_and_registers_module_command()
     assert "Assert-VenvPythonSupported" in content
     assert "python-bidi" in content
     assert "-m', 'venv'" in content
-    assert "-m pip install --upgrade --only-binary=:all: pip setuptools wheel" in content
+    assert '-m pip install --upgrade --only-binary=:all: pip "setuptools<82" wheel' in content
     assert "-m pip install --no-build-isolation --editable $repoRoot" in content
     assert "requirements.txt" in content
     assert "requirements-ocr.txt" in content

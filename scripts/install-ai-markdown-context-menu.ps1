@@ -98,7 +98,7 @@ if (-not (Test-Path -LiteralPath $venvPython)) {
 
 Assert-VenvPythonSupported
 
-& $venvPython -m pip install --upgrade --only-binary=:all: pip setuptools wheel
+& $venvPython -m pip install --upgrade --only-binary=:all: pip "setuptools<82" wheel
 & $venvPython -m pip install --no-build-isolation --editable $repoRoot
 & $venvPython -m pip install --only-binary=:all: -r (Join-Path $repoRoot 'requirements.txt')
 
