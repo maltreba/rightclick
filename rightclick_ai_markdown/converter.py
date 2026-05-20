@@ -113,6 +113,54 @@ class ConversionResult:
     warning: str | None = None
 
 
+class ProgressWindow:
+    def __init__(self, total: int) -> None:
+        import tkinter as tk
+        from tkinter import ttk
+
+        self._root = tk.Tk()
+        self._root.title("Converting to Markdown for AI")
+        self._root.resizable(False, False)
+        self._total = total
+        self._done = 0
+
+        frame = ttk.Frame(self._root, padding=14)
+        frame.pack(fill="both", expand=True)
+
+        self._file_label = ttk.Label(frame, text="Starting...", width=55, anchor="w")
+        self._file_label.pack(fill="x", pady=(0, 6))
+
+        self._bar = ttk.Progressbar(frame, length=420, maximum=max(total, 1), mode="determinate")
+        self._bar.pack(fill="x")
+
+        self._counter_label = ttk.Label(frame, text=f"0 / {total}", anchor="e")
+        self._counter_label.pack(fill="x", pady=(4, 0))
+
+        self._root.update()
+
+    def step(self, file_path: Path) -> None:
+        self._done += 1
+        name = file_path.name
+        if len(name) > 55:
+            name = "..." + name[-52:]
+        self._file_label.config(text=name)
+        self._bar["value"] = self._done
+        self._counter_label.config(text=f"{self._done} / {self._total}")
+        self._root.update()
+
+    def close(self) -> None:
+        self._root.destroy()
+
+
+def try_open_progress_window(total: int) -> "ProgressWindow | None":
+    if total == 0:
+        return None
+    try:
+        return ProgressWindow(total)
+    except Exception:
+        return None
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Convert files selected from Windows right-click into AI-friendly Markdown."
@@ -155,21 +203,38 @@ def main(argv: Sequence[str] | None = None) -> int:
     results: list[ConversionResult] = []
     failures = 0
 
+    # Collect all files upfront so the progress window knows the total count.
+    queued: list[tuple[Path, Path]] = []
     for input_path in args.paths:
         try:
             for file_path in iter_files(input_path, recursive=args.recursive):
-                result = convert_file(
-                    file_path=file_path,
-                    output_dir=args.output_dir,
-                    overwrite=args.overwrite,
-                    ocr_language=args.ocr_language,
-                    pdf_ocr_dpi=args.pdf_ocr_dpi,
-                )
-                results.append(result)
-                print(format_result(result))
-        except Exception as exc:  # CLI boundary: show every selected-path error without a traceback.
+                queued.append((input_path, file_path))
+        except Exception as exc:
             failures += 1
             print(f"ERROR: {input_path}: {exc}", file=sys.stderr)
+
+    progress = try_open_progress_window(len(queued))
+
+    for _input_path, file_path in queued:
+        try:
+            result = convert_file(
+                file_path=file_path,
+                output_dir=args.output_dir,
+                overwrite=args.overwrite,
+                ocr_language=args.ocr_language,
+                pdf_ocr_dpi=args.pdf_ocr_dpi,
+            )
+            results.append(result)
+            print(format_result(result))
+        except Exception as exc:  # CLI boundary: show every queued-file error without a traceback.
+            failures += 1
+            print(f"ERROR: {file_path}: {exc}", file=sys.stderr)
+        finally:
+            if progress:
+                progress.step(file_path)
+
+    if progress:
+        progress.close()
 
     if args.open_output and results:
         open_in_file_explorer(results[-1].output.parent)
@@ -256,22 +321,13 @@ def metadata_header(source: Path, converter: str) -> str:
 
 
 def convert_image_with_ocr(source: Path, ocr_language: str = "eng+ind") -> tuple[str, str | None]:
-    text, engine, warning = ocr_image(source, ocr_language=ocr_language)
-    lines = [
-        metadata_header(source, converter=f"OCR image ({engine})"),
-        "## OCR Text",
-        "",
-    ]
+    text, _engine, warning = ocr_image(source, ocr_language=ocr_language)
     if text.strip():
-        lines.append(text.strip())
+        body = "## OCR Text\n\n" + text.strip() + "\n"
     else:
-        lines.append("_No text was detected in this image._")
+        body = "## OCR Text\n\n_No text was detected in this image._\n"
         warning = warning or "OCR completed but no text was detected."
-    lines.extend(["", "## AI Notes", "", "- Source file was an image, so visible text was extracted with OCR."])
-    if warning:
-        lines.append(f"- Warning: {warning}")
-    lines.append("")
-    return "\n".join(lines), warning
+    return body, warning
 
 
 def ocr_image(source: Path, ocr_language: str = "eng+ind") -> tuple[str, str, str | None]:
