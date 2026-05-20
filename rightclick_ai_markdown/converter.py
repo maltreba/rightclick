@@ -363,8 +363,11 @@ def try_easyocr(source: Path) -> str | None:
             _easyocr_reader = easyocr.Reader(["en", "id"], gpu=False, verbose=False)
         parts = _easyocr_reader.readtext(str(source), detail=0, paragraph=True)
         return "\n".join(str(part) for part in parts).strip()
-    except (MemoryError, RuntimeError):
-        # Image too large for EasyOCR tensors; fall through to Tesseract fallbacks.
+    except Exception:
+        # Any EasyOCR failure (OOM, enforce-fail, model error) falls through to
+        # lighter Tesseract fallbacks. Reset the reader so the next file gets a
+        # fresh attempt rather than a potentially corrupted state.
+        _easyocr_reader = None
         return None
 
 
