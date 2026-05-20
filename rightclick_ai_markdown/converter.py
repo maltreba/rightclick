@@ -17,7 +17,9 @@ from typing import Iterable, Sequence
 
 PDF_EXTENSION = ".pdf"
 SCANNED_PDF_MIN_TEXT_CHARS = 80
-PDF_OCR_DEFAULT_DPI = 200
+PDF_OCR_DEFAULT_DPI = 150
+
+_easyocr_reader = None  # cached across pages so the ML model is loaded only once
 
 IMAGE_EXTENSIONS = {
     ".bmp",
@@ -351,13 +353,19 @@ def ocr_image(source: Path, ocr_language: str = "eng+ind") -> tuple[str, str, st
 
 
 def try_easyocr(source: Path) -> str | None:
+    global _easyocr_reader
     if importlib.util.find_spec("easyocr") is None:
         return None
 
-    easyocr = importlib.import_module("easyocr")
-    reader = easyocr.Reader(["en", "id"], gpu=False, verbose=False)
-    parts = reader.readtext(str(source), detail=0, paragraph=True)
-    return "\n".join(str(part) for part in parts).strip()
+    try:
+        if _easyocr_reader is None:
+            easyocr = importlib.import_module("easyocr")
+            _easyocr_reader = easyocr.Reader(["en", "id"], gpu=False, verbose=False)
+        parts = _easyocr_reader.readtext(str(source), detail=0, paragraph=True)
+        return "\n".join(str(part) for part in parts).strip()
+    except (MemoryError, RuntimeError):
+        # Image too large for EasyOCR tensors; fall through to Tesseract fallbacks.
+        return None
 
 
 def try_pytesseract(source: Path, ocr_language: str = "eng+ind") -> str | None:
