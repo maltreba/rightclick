@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import argparse
+import datetime
 import html
 import importlib
 import importlib.util
+import mimetypes
 import os
 import shutil
 import subprocess
@@ -233,6 +235,26 @@ def build_output_path(source: Path, output_dir: Path | None = None, overwrite: b
         counter += 1
 
 
+def yaml_scalar(value: str) -> str:
+    return '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"'
+
+
+def metadata_header(source: Path, converter: str) -> str:
+    mime_type, _ = mimetypes.guess_type(str(source))
+    size = source.stat().st_size if source.exists() else 0
+    timestamp = datetime.datetime.now().isoformat(timespec="seconds")
+    return (
+        "---\n"
+        f"source: {yaml_scalar(str(source))}\n"
+        f"extension: {yaml_scalar(source.suffix.lower())}\n"
+        f"mime_type: {yaml_scalar(mime_type or 'application/octet-stream')}\n"
+        f"size_bytes: {size}\n"
+        f"converted_at: {yaml_scalar(timestamp)}\n"
+        f"converter: {yaml_scalar(converter)}\n"
+        "---\n\n"
+    )
+
+
 def convert_image_with_ocr(source: Path, ocr_language: str = "eng+ind") -> tuple[str, str | None]:
     text, engine, warning = ocr_image(source, ocr_language=ocr_language)
     lines = [
@@ -293,7 +315,7 @@ def try_pytesseract(source: Path, ocr_language: str = "eng+ind") -> str | None:
             try:
                 return str(pytesseract.image_to_string(image, lang=language)).strip()
             except pytesseract.TesseractError:
-                image.seek(0)
+                pass
         return None
 
 
@@ -473,11 +495,9 @@ def looks_like_text(source: Path, sample_size: int = 4096) -> bool:
 
 
 def unsupported_markdown(source: Path, reason: str) -> str:
-    _ = source
+    escaped_source = html.escape(str(source))
     escaped_reason = html.escape(reason)
-    return escaped_reason + "\n"
-def yaml_scalar(value: str) -> str:
-    return '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"'
+    return f"<!-- source: {escaped_source} -->\n\n{escaped_reason}\n"
 
 
 def escape_code_fence(content: str) -> str:
