@@ -1,7 +1,9 @@
 @echo off
 :: Removes the right-click context menu entries registered by install.bat.
 :: Double-click this file from Windows Explorer to uninstall.
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\uninstall-context-menu.ps1" -MenuKey RightClickAiMarkdown %*
+setlocal
+set "BATDIR=%~dp0"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%BATDIR%scripts\uninstall-context-menu.ps1" -MenuKey RightClickAiMarkdown %*
 if %ERRORLEVEL% neq 0 (
     echo.
     echo Uninstall failed. See the error above.
@@ -9,3 +11,4 @@ if %ERRORLEVEL% neq 0 (
     exit /b %ERRORLEVEL%
 )
 pause
+endlocal

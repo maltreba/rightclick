@@ -20,13 +20,26 @@ param(
     # Backward-compatible no-op: OCR dependencies are installed by default now.
     [switch]$WithOcr,
 
-    [string]$VenvPath = (Join-Path (Split-Path -Parent $PSScriptRoot) '.venv')
+    # Default resolved in script body so $PSScriptRoot is never evaluated in
+    # the param block, where it can be empty when called from a .bat file.
+    [string]$VenvPath = ''
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$repoRoot = Split-Path -Parent $PSScriptRoot
+# $PSScriptRoot is empty when PowerShell is launched from cmd.exe/bat in a
+# path that contains parentheses or spaces. Fall back to MyInvocation.
+$scriptDir = if ($PSScriptRoot) {
+    $PSScriptRoot
+} else {
+    Split-Path -Parent $MyInvocation.MyCommand.Definition
+}
+
+$repoRoot = Split-Path -Parent $scriptDir
+if (-not $VenvPath) {
+    $VenvPath = Join-Path $repoRoot '.venv'
+}
 $venvPython = Join-Path $VenvPath 'Scripts\python.exe'
 
 function Get-PythonVersionText {
@@ -106,7 +119,7 @@ if (-not $SkipOcr) {
     & $venvPython -m pip install --only-binary=:all: -r (Join-Path $repoRoot 'requirements-ocr.txt')
 }
 
-$installer = Join-Path $PSScriptRoot 'install-context-menu.ps1'
+$installer = Join-Path $scriptDir 'install-context-menu.ps1'
 & $installer `
     -MenuText $MenuText `
     -MenuKey $MenuKey `
