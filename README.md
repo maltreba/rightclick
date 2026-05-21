@@ -20,6 +20,14 @@
 .\scripts\install-ai-markdown-context-menu.ps1
 ```
 
+Jika komputer Anda memblokir eksekusi file `.ps1` (PowerShell Execution Policy), gunakan file `.bat` yang disediakan — cukup **klik dua kali `install.bat`** dari Windows Explorer:
+
+```
+install.bat
+```
+
+File `.bat` ini menjalankan installer PowerShell dengan flag `-ExecutionPolicy Bypass` sehingga tidak perlu mengubah kebijakan sistem secara permanen dan tidak memerlukan Administrator.
+
 Script tersebut akan:
 
 1. mencari Python user-level yang didukung (`py -3.12`, `py -3.11`, atau `py -3.10`) agar pip memakai wheel siap pakai,
@@ -125,7 +133,9 @@ Jika Anda hanya ingin menghapus lokasi tertentu:
 
 ## Script yang tersedia
 
-- `scripts/install-ai-markdown-context-menu.ps1` — installer utama untuk workflow Python + right-click converter.
+- `install.bat` — **cara termudah**: klik dua kali untuk install tanpa perlu membuka PowerShell.
+- `uninstall.bat` — klik dua kali untuk menghapus context menu.
+- `scripts/install-ai-markdown-context-menu.ps1` — installer PowerShell utama (dipanggil oleh `install.bat`).
 - `scripts/install-context-menu.ps1` — helper generic untuk mendaftarkan command apa pun ke context menu per-user.
 - `scripts/uninstall-context-menu.ps1` — menghapus registry key context menu per-user.
 - `python -m rightclick_ai_markdown` — CLI converter file/folder ke Markdown.
@@ -152,3 +162,11 @@ Anda bisa memilih lokasi lain dengan parameter `-Locations`, misalnya:
 - Jika sudah terlanjur membuat `.venv` dengan Python 3.14, hapus folder `.venv`, install Python 3.12 user-level, lalu jalankan ulang installer.
 - Jika muncul error lama `py.exe : File "<string>", line 1`, gunakan versi script terbaru ini. Pengecekan versi Python sekarang memakai `--version` (bukan `-c`), sehingga error tersebut tidak muncul lagi.
 - Jika dependency gagal di-install karena jaringan/proxy kantor, jalankan `pip` dengan konfigurasi proxy perusahaan atau gunakan wheel offline ke virtual environment `.venv`.
+- Jika muncul error **"running scripts is disabled on this system"** atau **"cannot be loaded because running scripts is disabled"**, artinya PowerShell Execution Policy memblokir file `.ps1`. Solusi: gunakan `install.bat` (klik dua kali dari Explorer), atau jalankan perintah berikut sekali di PowerShell yang dijalankan sebagai Administrator untuk mengizinkan script per-user:
+  ```powershell
+  Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+  ```
+  Atau jalankan installer langsung dengan bypass tanpa mengubah kebijakan:
+  ```powershell
+  powershell.exe -ExecutionPolicy Bypass -File ".\scripts\install-ai-markdown-context-menu.ps1"
+  ```
