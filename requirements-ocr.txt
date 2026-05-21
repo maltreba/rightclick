@@ -1,0 +1,9 @@
+# Optional OCR engines installable with pip --user or inside a venv.
+# EasyOCR works without installing the Tesseract Windows application, but is larger.
+easyocr>=1.7.0
+
+# pytesseract is a Python wrapper; it still needs a Tesseract executable on PATH.
+pytesseract>=0.3.10
+
+# Used to render scanned/photo PDF pages to images before OCR.
+pymupdf>=1.24.0

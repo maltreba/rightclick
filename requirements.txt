@@ -1,0 +1,2 @@
+# Full MarkItDown converter extras for Office/PDF/HTML/etc. and image handling.
+markitdown[all]>=0.1.0
